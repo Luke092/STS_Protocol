@@ -7,10 +7,14 @@
 #include <string.h>
 #include <strings.h>
 
+// callback definition for handling message from clients
 typedef void (*CB_handle_message)(int socket, char *message, int len);
 
+// create new socket
 int createSocket(int port);
+// start listening on a socket
 void listenLoop(int sockfd, CB_handle_message cb);
+// manage single client comminications
 void manageConnection(int id, int newsockfd, CB_handle_message cb);
 
 #endif

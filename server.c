@@ -33,6 +33,7 @@ void listenLoop(int sockfd, CB_handle_message cb){
     if (newsockfd < 0){
       printf("ERROR on accept\n");
     } else {
+      // generate new process for communication handling
       cID++;
       int pid = fork();
       if(pid == 0){
@@ -56,7 +57,7 @@ void manageConnection(int id, int newsockfd, CB_handle_message cb){
     bzero(buffer,256);
     do{
       n = read(newsockfd, buffer, 255);
-    }while (n == 0); // repeat the read if i read 0 bytes
+    }while (n == 0); // repeat the read if it's 0 bytes long
 
     printf("ChildHandler %d\t", id);
     // callback call
