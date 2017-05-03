@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "server.h"
 #include "client.h"
+#include "crypto.h"
 
 #define MILLS(X) (X * 1000)
 #define SEC(X) (MILLS(X) * 1000)
@@ -14,14 +15,17 @@ void client_fun();
 void handleMessage(int socket, char *message, int len);
 
 int main(){
-  int pid = fork();
+  /*int pid = fork();
 
   if(pid == 0){
     usleep(SEC(1));
     client_fun();
   } else {
     server_fun();
-  }
+  }*/
+
+  DH *dh = get_params("param.pem", 1024);
+  DHparams_print_fp(stdout, dh);
 
   return 0;
 }
