@@ -31,6 +31,7 @@ int s_send(int sockfd, char* message, int len){
    return 0;
 }
 
+//TODO: make it in blocking mode
 int s_receive(int sockfd, char* message, int* len){
   int n;
   char buffer[256];

@@ -4,6 +4,7 @@
 #include "server.h"
 #include "client.h"
 #include "crypto.h"
+#include "encodings.h"
 
 #define MILLS(X) (X * 1000)
 #define SEC(X) (MILLS(X) * 1000)
@@ -26,6 +27,15 @@ int main(){
 
   DH *dh = get_params("param.pem", 1024);
   DHparams_print_fp(stdout, dh);
+  gen_keypair(dh);
+  BIGNUM *p = BN_new();
+  BIGNUM *g = BN_new();
+  DH_get0_pqg(dh, &p, NULL, &g);
+  char *msgs[2];
+  msgs[0] = BN_bn2hex(p);
+  msgs[1] = BN_bn2hex(g);
+  char *pkg = message_encode(msgs, 2);
+  print_packet(pkg);
 
   return 0;
 }
@@ -73,7 +83,8 @@ void client_fun(){
 
   if(sockfd > 0){
     while(1){
-      s_send(sockfd, "Hello!", strlen("Hello"));
+      char buf[3] = {0xFF, 0xFE, 0x0};
+      s_send(sockfd, buf, 2);
       usleep(SEC(5));
     }
   }
