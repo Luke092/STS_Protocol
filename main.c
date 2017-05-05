@@ -25,7 +25,7 @@ int main(){
     server_fun();
   }*/
 
-  DH *dh = get_params("param.pem", 1024);
+  DH *dh = get_params("./params/param.pem", 1024);
   DHparams_print_fp(stdout, dh);
   gen_keypair(dh);
   BIGNUM *p = BN_new();

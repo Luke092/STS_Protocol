@@ -13,7 +13,7 @@ DH *get_params(char *path, int len){
   if(p == NULL){
     // no param stored
     DH_generate_parameters_ex(dh, len, G, NULL);
-    p = fopen("param.pem", "w");
+    p = fopen(path, "w");
     PEM_write_DHparams(p, dh);
   } else {
     // retrieve from file
