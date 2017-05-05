@@ -2,6 +2,7 @@
 #define H_SERVER
 
 #include "net.h"
+#include "client.h"
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <string.h>

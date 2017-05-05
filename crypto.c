@@ -1,10 +1,5 @@
 #include "crypto.h"
 
-DH *gen_keypair(DH *params){
-  DH_generate_key(params);
-  return params;
-}
-
 DH *get_params(char *path, int len){
   FILE *p = fopen(path, "r");
   // Diffie-Hellman params
@@ -21,4 +16,28 @@ DH *get_params(char *path, int len){
   }
 
   return dh;
+}
+
+RSA *read_rsa_key(char *pub_path, char *pri_path){
+  RSA *rsa = RSA_new();
+
+  FILE *rsa_pub_fp = fopen(pub_path, "r");
+  FILE *rsa_pri_fp = fopen(pri_path, "r");
+  if(rsa_pub_fp == 0 && rsa_pri_fp == 0) {
+    return NULL;
+  }
+
+  // read public info
+  if(rsa_pub_fp != 0){
+    rsa = PEM_read_RSA_PUBKEY(rsa_pub_fp, NULL, NULL, NULL);
+  }
+
+  // read private info
+  if(rsa_pri_fp != 0){
+    rsa = PEM_read_RSAPrivateKey(rsa_pri_fp, &rsa, NULL, NULL);
+  }
+
+  RSA_print_fp(stdout, rsa, 0);
+  printf("\n");
+  return rsa;
 }

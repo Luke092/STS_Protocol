@@ -27,7 +27,6 @@ void listenLoop(int sockfd, CB_handle_message cb){
 
   listen(sockfd, 5);
   clilen = sizeof(cli_addr);
-  //TODO: implement infinit loop
   while(1){
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0){
@@ -47,25 +46,18 @@ void listenLoop(int sockfd, CB_handle_message cb){
 }
 
 void manageConnection(int id, int newsockfd, CB_handle_message cb){
-  char buffer[256];
+  char *in_message = NULL;
   int n;
-  // define blocking mode on read
-  int iMode = 0;
-  ioctl(newsockfd, FIONBIO, &iMode);
 
   while(1){
-    bzero(buffer,256);
-    do{
-      n = read(newsockfd, buffer, 255);
-    }while (n == 0); // repeat the read if it's 0 bytes long
+    in_message = s_receive(newsockfd);
 
     printf("ChildHandler %d\t", id);
     // callback call
-    int len = strlen(buffer);
-    char message[len + 1];
-    bzero(message, len+1);
-    bcopy(buffer, message, len);
-    cb(newsockfd, message, len);
+    int len = strlen(in_message);
+    if(len != 0){
+      cb(newsockfd, in_message, len);
+    }
   }
 
   close(newsockfd);

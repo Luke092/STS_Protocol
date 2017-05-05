@@ -3,6 +3,7 @@
 
 #include <openssl/bn.h>
 #include <openssl/dh.h>
+#include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <stdio.h>
 
@@ -11,6 +12,6 @@
 void testBN();
 
 DH *get_params(char *path, int len);
-DH *gen_keypair(DH *params);
+RSA *read_rsa_key(char *pub_path, char *pri_path);
 
 #endif

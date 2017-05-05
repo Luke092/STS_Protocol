@@ -6,8 +6,6 @@ int s_connect(char* addr, int port){
   struct sockaddr_in serv_addr;
   struct hostent *server;
 
-  char buffer[256];
-
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0)
     return -1; // cannot create socket
@@ -31,19 +29,22 @@ int s_send(int sockfd, char* message, int len){
    return 0;
 }
 
-//TODO: make it in blocking mode
-int s_receive(int sockfd, char* message, int* len){
+char* s_receive(int sockfd){
   int n;
-  char buffer[256];
-  bzero(buffer,256);
-  n = read(sockfd,buffer,255);
+  char buffer[1024];
+  bzero(buffer,1024);
+
+  do{
+    n = read(sockfd, buffer, 1023);
+  }while (n == 0);
   if (n < 0){
-    printf("ERROR reading from socket");
+    printf("ERROR reading from socket\n");
     return -1;
   }
 
-  *len = n;
-  strcpy(message, buffer);
-
-  return 0;
+  int m_len = strlen(buffer);
+  char *message = (char *) malloc(sizeof(char) * m_len + 1);
+  bzero(message, m_len + 1);
+  bcopy(buffer, message, m_len);
+  return message;
 }

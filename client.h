@@ -3,7 +3,9 @@
 
 #include "net.h"
 #include <stdio.h>
+#include <sys/ioctl.h>
 #include <string.h>
+#include <strings.h>
 
 // connect to remote server
 int s_connect(char* addr, int port);
@@ -12,6 +14,7 @@ int s_connect(char* addr, int port);
 int s_send(int sockfd, char* message, int len);
 
 // read a message from a stream socket
-int s_receive(int sockfd, char* message, int* len);
+//int s_receive(int sockfd, char** message, int* len);
+char* s_receive(int sockfd);
 
 #endif
