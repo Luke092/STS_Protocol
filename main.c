@@ -36,6 +36,12 @@ int main(){
   msgs[1] = BN_bn2hex(g);
   char *pkg = message_encode(msgs, 2);
   print_packet(pkg);
+  int r_len = 0;
+  char **decode = message_decode(pkg, &r_len);
+  printf("r_len = %d\n", r_len);
+  for(int i = 0; i < r_len; i++){
+    printf("S%d: %s\n", i+1, decode[i]);
+  }
 
   return 0;
 }

@@ -61,8 +61,58 @@ char *message_encode(char **messages, int len){
   return result;
 }
 
-char **message_decode(char *bytes){
+char** reallocate(char **matrix, int len_i, int len_f){
+  char **res = (char*) malloc(sizeof(char*) * len_f);
+  char **r_ptr = res;
+  char **s_ptr = matrix;
+  int i;
+  for(i = 0; i < len_i; i++){
+    *r_ptr = *s_ptr;
+    r_ptr++;
+    s_ptr++;
+  }
+  free(matrix);
+  return res;
+}
 
+char** matrix_append(char **matrix, int len, char *str){
+  char **res;
+  res = reallocate(matrix, len, len + 1);
+  res[len] = str;
+  return res;
+}
+
+char **message_decode(char *bytes, int *res_len){
+  char **result = NULL;
+  int r_len = 0;
+  unsigned char *ptr_byte = bytes;
+  if(*ptr_byte != SOP){
+    *res_len = -1;
+    return NULL;
+  } else {
+    do{
+      ptr_byte++;
+      int len_msg = 0;
+      unsigned char *count_ptr = ptr_byte;
+      while(*count_ptr != SEP && *count_ptr != EOP){
+        len_msg++;
+        count_ptr++;
+      }
+      int i;
+      char *msg = (char *)malloc(sizeof(char) * len_msg + 1);
+      char *msg_ptr = msg;
+      for(i = 0; i < len_msg; i++){
+        *msg_ptr = *ptr_byte;
+        msg_ptr++;
+        ptr_byte++;
+      }
+      msg_ptr = '\0';
+      result = matrix_append(result, r_len, msg);
+      r_len++;
+    } while (*ptr_byte != EOP);
+  }
+  *res_len = r_len;
+  return result;
 }
 
 void print_packet(char *bytes){
