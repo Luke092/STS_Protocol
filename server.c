@@ -21,44 +21,25 @@ int createSocket(int port){
 
 void listenLoop(int sockfd, CB_handle_message cb){
   int newsockfd, clilen;
-  int cID = 0;
 
   struct sockaddr_in cli_addr;
 
   listen(sockfd, 5);
   clilen = sizeof(cli_addr);
+  
   while(1){
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0){
       printf("ERROR on accept\n");
     } else {
       // generate new process for communication handling
-      cID++;
       int pid = fork();
       if(pid == 0){
-        manageConnection(cID, newsockfd, cb);
+        cb(newsockfd);
       }
     }
   }
 
   //Close socket
   close(sockfd);
-}
-
-void manageConnection(int id, int newsockfd, CB_handle_message cb){
-  char *in_message = NULL;
-  int n;
-
-  while(1){
-    in_message = s_receive(newsockfd);
-
-    printf("ChildHandler %d\t", id);
-    // callback call
-    int len = strlen(in_message);
-    if(len != 0){
-      cb(newsockfd, in_message, len);
-    }
-  }
-
-  close(newsockfd);
 }

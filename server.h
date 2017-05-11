@@ -9,7 +9,7 @@
 #include <strings.h>
 
 // callback definition for handling message from clients
-typedef void (*CB_handle_message)(int socket, char *message, int len);
+typedef void (*CB_handle_message)(int cli_socket);
 
 // create new socket
 int createSocket(int port);

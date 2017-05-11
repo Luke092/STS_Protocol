@@ -13,7 +13,7 @@
 
 void server_fun();
 void client_fun();
-void handleMessage(int socket, char *message, int len);
+void handleMessage(int cli_socket);
 
 int main(){
   int pid = fork();
@@ -25,7 +25,7 @@ int main(){
     server_fun();
   }
 
-  /*DH *dh = get_params("./params/param.pem", 1024);
+  /*DH *dh = get_params("./params/dh_param.pem", 1024);
   DHparams_print_fp(stdout, dh);
   gen_keypair(dh);
   BIGNUM *p = BN_new();
@@ -66,13 +66,19 @@ void server_fun(){
   }
 }
 
-void handleMessage(int socket, char *message, int len){
-  printf("Message Handling -> \t len = %d \t mex: %s\n", len, message);
-  char echo[len + 2];
-  strcpy(echo, message);
-  echo[len] = '\n';
-  echo[len + 1] = '\0';
-  s_send(socket, echo, len + 2);
+void handleMessage(int cli_socket){
+  while(1){
+    char *message;
+    int len;
+    message = s_receive(cli_socket);
+    len = strlen(message);
+    printf("Message Handling -> \t len = %d \t mex: %s\n", len, message);
+    char echo[len + 2];
+    strcpy(echo, message);
+    echo[len] = '\n';
+    echo[len + 1] = '\0';
+    s_send(cli_socket, echo, len + 2);
+  }
 }
 
 void client_fun(){
