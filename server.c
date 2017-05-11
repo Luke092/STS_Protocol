@@ -19,14 +19,14 @@ int createSocket(int port){
   return sockfd;
 }
 
-void listenLoop(int sockfd, CB_handle_message cb){
+void listenLoop(int sockfd, CB_handle_client cb){
   int newsockfd, clilen;
 
   struct sockaddr_in cli_addr;
 
   listen(sockfd, 5);
   clilen = sizeof(cli_addr);
-  
+
   while(1){
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0){

@@ -111,7 +111,9 @@ char **message_decode(char *bytes, int *res_len){
       r_len++;
     } while (*ptr_byte != EOP);
   }
-  *res_len = r_len;
+  if(res_len != NULL){
+    *res_len = r_len;
+  }
   return result;
 }
 
@@ -122,4 +124,30 @@ void print_packet(char *bytes){
     byte++;
   }
   printf("%X\n", *byte);
+}
+
+char* byte_to_hex(unsigned char* bytes, int len){
+  // every byte is encoded in 2 characters
+  unsigned char *res = (char*) malloc(sizeof(char) * len * 2 + 1);
+  unsigned char *ptr = res;
+  int i = 0;
+  for(i = 0; i < len; i++){
+    ptr += sprintf(ptr, "%.2X", bytes[i]);
+  }
+  res[len*2] = '\0';
+  return res;
+}
+
+unsigned char* hex_to_byte(char* hex_str, int *len){
+  // every byte is encoded in 2 characters
+  unsigned char* res = (char*) malloc(strlen(hex_str) / 2 + 1);
+  unsigned char* ptr = hex_str;
+  *len = strlen(hex_str) / 2;
+  int i = 0;
+  for(i = 0; i < *len; i++){
+    sscanf(ptr, "%2hhX", &res[i]);
+    ptr += 2;
+  }
+  res[*len] = '\0';
+  return res;
 }

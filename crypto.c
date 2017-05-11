@@ -37,7 +37,22 @@ RSA *read_rsa_key(char *pub_path, char *pri_path){
     rsa = PEM_read_RSAPrivateKey(rsa_pri_fp, &rsa, NULL, NULL);
   }
 
-  RSA_print_fp(stdout, rsa, 0);
-  printf("\n");
+  //RSA_print_fp(stdout, rsa, 0);
+  //printf("\n");
   return rsa;
+}
+
+char* get_hash_sha256(char *message, int *r_len){
+  EVP_MD_CTX *ctx =EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+  EVP_DigestUpdate(ctx, message, strlen(message));
+  char *digest[EVP_MAX_MD_SIZE];
+  int d_len;
+  EVP_DigestFinal_ex(ctx, digest, &d_len);
+  char *res = (char*) malloc(sizeof(char) * d_len);
+  bcopy(digest, res, d_len);
+  if(r_len != NULL){
+    *r_len = d_len;
+  }
+  return res;
 }

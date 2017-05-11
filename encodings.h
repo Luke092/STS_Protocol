@@ -30,4 +30,9 @@ char** reallocate(char **matrix, int len_i, int len_f);
 // append a string into an array
 char** matrix_append(char **matrix, int len, char *str);
 
+// convert byte array to hex string
+char* byte_to_hex(unsigned char* bytes, int len);
+// convert hex string to byte array
+unsigned char* hex_to_byte(char* hex_str, int *len);
+
 #endif

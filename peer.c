@@ -5,6 +5,7 @@ pPeer new_peer(){
   p->name = NULL;
   p->dh = NULL;
   p->rsa = NULL;
+  p->key_size = 0;
   p->shared_key = NULL;
   return p;
 }
@@ -35,6 +36,7 @@ pPeer derive_key(pPeer p, BIGNUM *pub){
   int size = DH_size(p->dh);
   unsigned char *key = (char *) malloc(sizeof(char) * size);
   DH_compute_key(key, pub, p->dh);
+  p->key_size = size;
   p->shared_key = key;
 }
 
