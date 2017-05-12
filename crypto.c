@@ -37,15 +37,13 @@ RSA *read_rsa_key(char *pub_path, char *pri_path){
     rsa = PEM_read_RSAPrivateKey(rsa_pri_fp, &rsa, NULL, NULL);
   }
 
-  //RSA_print_fp(stdout, rsa, 0);
-  //printf("\n");
   return rsa;
 }
 
-char* get_hash_sha256(char *message, int *r_len){
+unsigned char* get_hash_sha256(char *message, int m_len, int *r_len){
   EVP_MD_CTX *ctx =EVP_MD_CTX_new();
   EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
-  EVP_DigestUpdate(ctx, message, strlen(message));
+  EVP_DigestUpdate(ctx, message, m_len);
   char *digest[EVP_MAX_MD_SIZE];
   int d_len;
   EVP_DigestFinal_ex(ctx, digest, &d_len);
@@ -54,5 +52,91 @@ char* get_hash_sha256(char *message, int *r_len){
   if(r_len != NULL){
     *r_len = d_len;
   }
+
+  // clean up
+  EVP_MD_CTX_free(ctx);
+
+  return res;
+}
+
+unsigned char* aes256_encrypt(unsigned char* key, int k_len, char *plain_text, int m_len, int *c_len){
+  const int block_size = 32;
+    // blank iv initialization
+    unsigned char* iv = (char*) malloc(sizeof(char) * 16);
+    bzero(iv, 16);
+
+    // key derivation
+    unsigned char* aes_key = (char*) malloc(sizeof(char) * block_size);
+    PKCS5_PBKDF2_HMAC(key, k_len,
+                       NULL, 0,
+                       1000,
+                       EVP_sha256(),
+                       block_size, aes_key);
+
+    // encryption
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(),
+         NULL, aes_key, iv);
+    unsigned char *out = (char*) malloc(sizeof(char) * block_size + m_len);
+    int o_len = 0;
+
+    EVP_EncryptUpdate(ctx, out,
+        &o_len, plain_text, m_len);
+
+    int tmp_len;
+    EVP_EncryptFinal_ex(ctx, out + o_len, &tmp_len);
+    o_len += tmp_len;
+
+    unsigned char *res = (char*) malloc(sizeof(char) * o_len);
+    bcopy(out, res, o_len);
+    *c_len = o_len;
+
+    // memory clean up
+    EVP_CIPHER_CTX_free(ctx);
+    free(iv);
+    free(aes_key);
+    free(out);
+
+    return res;
+}
+
+char* aes256_decrypt(unsigned char *key, int k_len, unsigned char *chipher_text, int c_len, int *m_len){
+  const int block_size = 32;
+  // blank iv initialization
+  unsigned char* iv = (char*) malloc(sizeof(char) * 16);
+  bzero(iv, 16);
+
+  // key derivation
+  unsigned char* aes_key = (char*) malloc(sizeof(char) * block_size);
+  PKCS5_PBKDF2_HMAC(key, k_len,
+                     NULL, 0,
+                     1000,
+                     EVP_sha256(),
+                     block_size, aes_key);
+
+  // decryption
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(),
+       NULL, aes_key, iv);
+  unsigned char *out = (char*) malloc(sizeof(char) * block_size + c_len);
+  int o_len;
+
+  EVP_DecryptUpdate(ctx, out,
+      &o_len, chipher_text, c_len);
+
+  int tmp_len;
+  EVP_DecryptFinal_ex(ctx, out + o_len, &tmp_len);
+  o_len += tmp_len;
+
+  unsigned char *res = (char*) malloc(sizeof(char) * o_len);
+  bcopy(out, res, o_len);
+  *m_len = o_len;
+
+  // memory clean up
+  EVP_CIPHER_CTX_free(ctx);
+  free(iv);
+  free(aes_key);
+  free(out);
+
   return res;
 }
