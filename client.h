@@ -3,6 +3,7 @@
 
 #include "net.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <string.h>
 #include <strings.h>

@@ -1,5 +1,13 @@
 #include "encodings.h"
 
+void print_bytes(unsigned char* bytes, int len){
+  int i = 0;
+  for (i = 0; i < len; i++){
+    printf("%.2X ", bytes[i]);
+  }
+  printf("\n");
+}
+
 char *str_concat(char *s1, char *s2){
   int size1 = strlen(s1);
   int size2 = strlen(s2);
@@ -62,7 +70,7 @@ char *message_encode(char **messages, int len){
 }
 
 char** reallocate(char **matrix, int len_i, int len_f){
-  char **res = (char*) malloc(sizeof(char*) * len_f);
+  char **res = (char**) malloc(sizeof(char*) * len_f);
   char **r_ptr = res;
   char **s_ptr = matrix;
   int i;
@@ -100,6 +108,7 @@ char **message_decode(char *bytes, int *res_len){
       }
       int i;
       char *msg = (char *)malloc(sizeof(char) * len_msg + 1);
+      bzero(msg, len_msg + 1);
       char *msg_ptr = msg;
       for(i = 0; i < len_msg; i++){
         *msg_ptr = *ptr_byte;
@@ -117,15 +126,6 @@ char **message_decode(char *bytes, int *res_len){
   return result;
 }
 
-void print_packet(char *bytes){
-  unsigned char *byte = bytes;
-  while(*byte != EOP){
-    printf("%X", *byte);
-    byte++;
-  }
-  printf("%X\n", *byte);
-}
-
 char* byte_to_hex(unsigned char* bytes, int len){
   // every byte is encoded in 2 characters
   unsigned char *res = (char*) malloc(sizeof(char) * len * 2 + 1);
@@ -140,7 +140,7 @@ char* byte_to_hex(unsigned char* bytes, int len){
 
 unsigned char* hex_to_byte(char* hex_str, int *len){
   // every byte is encoded in 2 characters
-  unsigned char* res = (char*) malloc(strlen(hex_str) / 2 + 1);
+  unsigned char* res = (char*) malloc(strlen(hex_str) / 2);
   unsigned char* ptr = hex_str;
   *len = strlen(hex_str) / 2;
   int i = 0;
@@ -148,6 +148,5 @@ unsigned char* hex_to_byte(char* hex_str, int *len){
     sscanf(ptr, "%2hhX", &res[i]);
     ptr += 2;
   }
-  res[*len] = '\0';
   return res;
 }

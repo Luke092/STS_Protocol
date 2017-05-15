@@ -7,6 +7,7 @@
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <stdio.h>
+#include <strings.h>
 
 #define G 2
 

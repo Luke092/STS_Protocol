@@ -39,7 +39,7 @@ char* s_receive(int sockfd){
   }while (n == 0);
   if (n < 0){
     printf("ERROR reading from socket\n");
-    return -1;
+    return NULL;
   }
 
   int m_len = strlen(buffer);

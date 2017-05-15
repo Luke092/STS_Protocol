@@ -20,15 +20,6 @@ void pong(pPeer peer, int socket);
 
 pPeer g_bob;
 
-//DEBUG
-void print_bytes(unsigned char* key, int len){
-  int i = 0;
-  for (i = 0; i < len; i++){
-    printf("%.2X ", key[i]);
-  }
-  printf("\n");
-}
-
 int main(){
   // get Diffie-Hellman params
   DH *dh = get_params("./params/dh_param.pem", 1024);
@@ -88,7 +79,7 @@ void sts_server(int cli_socket){
   g_bob = derive_key(g_bob, alice_dh_pub);
 
   BIGNUM *pub = BN_new();
-  DH_get0_key(g_bob->dh, &pub, NULL);
+  DH_get0_key(g_bob->dh, (const BIGNUM **)&pub, NULL);
   char *str_pub_key = BN_bn2hex(pub);
 
   // signing
@@ -174,7 +165,7 @@ void alice(pPeer peer){
     DH_generate_key(peer->dh);
 
     BIGNUM *pub = BN_new();
-    DH_get0_key(peer->dh, &pub, NULL);
+    DH_get0_key(peer->dh, (const BIGNUM **)&pub, NULL);
     char *str_pub_key = BN_bn2hex(pub);
     char *message[1];
     message[0] = str_pub_key;
@@ -262,8 +253,8 @@ void ping(pPeer peer, int socket){
   msg[0] = byte_to_hex(encrypted, c_len);
   str = message_encode(msg, 1);
   while(1){
-    usleep(SEC(1));
-    printf("Ping!\n");
+    usleep(MILLS(500));
+    printf("%s> Ping!\n", peer->name);
     s_send(socket, str, strlen(str));
     if(reply != NULL){
       free(reply);
@@ -304,7 +295,8 @@ void pong(pPeer peer, int socket){
     if(decrypted != NULL){
       free(decrypted);
     }
-    encrypted = hex_to_byte(message_decode(reply, NULL)[0], &c_len);
+    char *decode = message_decode(reply, NULL)[0];
+    encrypted = hex_to_byte(decode, &c_len);
     decrypted = aes256_decrypt(peer->shared_key, peer->key_size, encrypted, c_len, &m_len);
     char *tmp = (char*) malloc(m_len + 1);
     bcopy(decrypted, tmp, m_len);
@@ -313,7 +305,7 @@ void pong(pPeer peer, int socket){
     decrypted = tmp;
     if(strcmp(decrypted, "Ping!") == 0){
       usleep(MILLS(250));
-      printf("Pong!\n");
+      printf("%s> Pong!\n", peer->name);
       s_send(socket, str, strlen(str));
     } else {
       printf("Ping Error!\n");

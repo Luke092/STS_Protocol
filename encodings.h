@@ -23,8 +23,6 @@ char *message_encode(char **messages, int len);
 // decode a message to an array of strings
 char **message_decode(char *bytes, int *res_le);
 
-void print_packet(char *bytes);
-
 // relocate the array in a new memory position with a new size
 char** reallocate(char **matrix, int len_i, int len_f);
 // append a string into an array
@@ -34,5 +32,8 @@ char** matrix_append(char **matrix, int len, char *str);
 char* byte_to_hex(unsigned char* bytes, int len);
 // convert hex string to byte array
 unsigned char* hex_to_byte(char* hex_str, int *len);
+
+char *str_concat(char *s1, char *s2);
+void print_bytes(unsigned char* bytes, int len);
 
 #endif

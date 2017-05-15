@@ -47,7 +47,7 @@ unsigned char* get_hash_sha256(char *message, int m_len, int *r_len){
   EVP_MD_CTX *ctx =EVP_MD_CTX_new();
   EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
   EVP_DigestUpdate(ctx, message, m_len);
-  char *digest[EVP_MAX_MD_SIZE];
+  unsigned char digest[EVP_MAX_MD_SIZE];
   int d_len;
   EVP_DigestFinal_ex(ctx, digest, &d_len);
   char *res = (char*) malloc(sizeof(char) * d_len);
