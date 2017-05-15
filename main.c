@@ -11,10 +11,12 @@
 #define SEC(X) (MILLS(X) * 1000)
 
 #define PORT 1055
-
 void bob(pPeer peer);
 void alice(pPeer peer);
 void sts_server(int cli_socket);
+
+void ping(pPeer peer, int socket);
+void pong(pPeer peer, int socket);
 
 pPeer g_bob;
 
@@ -25,31 +27,6 @@ void print_bytes(unsigned char* key, int len){
     printf("%.2X ", key[i]);
   }
   printf("\n");
-}
-
-// string concatenation
-char* string_concat(char* s1, char* s2){
-    int size1 = strlen(s1);
-    int size2 = strlen(s2);
-    char* res = (char*) malloc(sizeof(char) * size1 + size2 + 1);
-
-    char* pt_r = res;
-
-    char* pt_s = s1;
-    for(int i = 0; i < size1; i++){
-        *pt_r = *pt_s;
-        pt_r++;
-        pt_s++;
-    }
-    pt_s = s2;
-    for(int i = 0; i < size2; i++){
-        *pt_r = *pt_s;
-        pt_r++;
-        pt_s++;
-    }
-    *pt_r = '\0';
-
-    return res;
 }
 
 int main(){
@@ -115,25 +92,67 @@ void sts_server(int cli_socket){
   char *str_pub_key = BN_bn2hex(pub);
 
   // signing
-  unsigned char* pub_keys = string_concat(str_pub_key, alice_dh_pub_str);
+  unsigned char* pub_keys = str_concat(str_pub_key, alice_dh_pub_str);
   int d_hash;
-  unsigned char* hash_pub_keys = get_hash_sha256(pub_keys, &d_hash);
+  unsigned char* hash_pub_keys = get_hash_sha256(pub_keys, strlen(pub_keys),&d_hash);
+
   unsigned char* sign_pub_keys = (char*) malloc(RSA_size(g_bob->rsa));
   unsigned int sign_len;
-  int res = RSA_sign(NID_sha1, hash_pub_keys, strlen(hash_pub_keys),
+  RSA_sign(NID_sha1, hash_pub_keys, d_hash,
             sign_pub_keys, &sign_len, g_bob->rsa);
-  char* sign_pub_keys_hex = byte_to_hex(sign_pub_keys, sign_len);
+
+  // clean temp memory
+  free(pub_keys);
+  free(hash_pub_keys);
 
   // encryption with shared_key
-  //TODO: encryption
+  int e_k_len = 0;
+  unsigned char* e_k = aes256_encrypt(g_bob->shared_key, g_bob->key_size,
+    sign_pub_keys, sign_len, &e_k_len);
+
+  free(sign_pub_keys);
 
   char *message[2];
   message[0] = str_pub_key;
-  message[1] = sign_pub_keys_hex;
+  message[1] = byte_to_hex(e_k, e_k_len);
   char *encoded_str = message_encode(message, 2);
 
   // send g^y and E_k(S_b(SHA256(g^y,g^x))) to alice
   s_send(cli_socket, encoded_str, strlen(encoded_str));
+
+  // get E_k(S_a(SHA256(g^x,g^y))) from alice
+  free(enc_str);
+  enc_str = s_receive(cli_socket);
+  free(dec_str);
+  dec_str = message_decode(enc_str, NULL);
+
+  // verify E_k(S_b(SHA256(g^y,g^x)))
+  RSA *rsa_alice = read_rsa_key("./bob/alice.pub", NULL);
+  e_k_len = 0;
+  free(e_k);
+  e_k = hex_to_byte(dec_str[0], &e_k_len);
+
+  // decrypt
+  sign_len = 0;
+  sign_pub_keys = aes256_decrypt(g_bob->shared_key, g_bob->key_size,
+    e_k, e_k_len, &sign_len);
+
+  // verify sign
+  pub_keys = str_concat(alice_dh_pub_str, str_pub_key);
+  hash_pub_keys = get_hash_sha256(pub_keys, strlen(pub_keys),&d_hash);
+
+  int verify = RSA_verify(NID_sha1, hash_pub_keys, d_hash,
+    sign_pub_keys, sign_len, rsa_alice);
+  if(verify != 1){
+    printf("Bob> Alice's signature error!!!\n");
+    exit(-1);
+  }
+
+  printf("Bob> Alice Trusted!\n");
+
+  printf("Bob> Ephemeral key created! Starting communication...\n");
+
+  ping(g_bob, cli_socket);
 }
 
 void alice(pPeer peer){
@@ -164,7 +183,7 @@ void alice(pPeer peer){
     // send g^x to Bob
     s_send(sockfd, encoded_str, strlen(encoded_str));
 
-    // get g^y from Bob
+    // get g^y and E_k(S_b(SHA256(g^y,g^x))) from Bob
     encoded_str = s_receive(sockfd);
     char **dec_str = message_decode(encoded_str, NULL);
     char* bob_dh_pub_str = dec_str[0];
@@ -173,5 +192,131 @@ void alice(pPeer peer){
 
     // calculate shared key
     peer = derive_key(peer, bob_dh_pub);
+
+    // verify E_k(S_b(SHA256(g^y,g^x)))
+    RSA *rsa_bob = read_rsa_key("./alice/bob.pub", NULL);
+    int e_k_len = 0;
+    char *e_k = hex_to_byte(dec_str[1], &e_k_len);
+
+    // decrypt
+    int sign_len = 0;
+    unsigned char *sign_pub_keys = aes256_decrypt(peer->shared_key, peer->key_size,
+      e_k, e_k_len, &sign_len);
+
+    // verify sign
+    unsigned char* pub_keys = str_concat(bob_dh_pub_str, str_pub_key);
+    int d_hash;
+    unsigned char* hash_pub_keys = get_hash_sha256(pub_keys, strlen(pub_keys),&d_hash);
+
+    int verify = RSA_verify(NID_sha1, hash_pub_keys, d_hash,
+      sign_pub_keys, sign_len, rsa_bob);
+    if(verify != 1){
+      printf("Alice> Bob's signature error!!!\n");
+      exit(-1);
+    }
+
+    printf("Alice> Bob Trusted!\n");
+
+    free(pub_keys);
+    free(hash_pub_keys);
+    pub_keys = str_concat(str_pub_key, bob_dh_pub_str);
+    hash_pub_keys = get_hash_sha256(pub_keys, strlen(pub_keys), &d_hash);
+
+    //signing
+    free(sign_pub_keys);
+    sign_pub_keys = (char*) malloc(RSA_size(peer->rsa));
+    RSA_sign(NID_sha1, hash_pub_keys, d_hash,
+              sign_pub_keys, &sign_len, peer->rsa);
+
+    // clean temp memory
+    free(pub_keys);
+    free(hash_pub_keys);
+
+    // encryption with shared_key
+    e_k_len = 0;
+    free(e_k);
+    e_k = aes256_encrypt(peer->shared_key, peer->key_size,
+      sign_pub_keys, sign_len, &e_k_len);
+
+    free(sign_pub_keys);
+
+    // send E_k(S_a(SHA256(g^x,g^y)))
+    message[0] = byte_to_hex(e_k, e_k_len);
+    free(encoded_str);
+    encoded_str = message_encode(message, 1);
+    s_send(sockfd, encoded_str, strlen(encoded_str));
+
+    printf("Alice> Ephemeral key created! Starting communication...\n");
+    pong(peer, sockfd);
+
+  }
+}
+
+void ping(pPeer peer, int socket){
+  char *reply = NULL;
+  char *decrypted = NULL;
+  char *str = "Ping!";
+  char *msg[1];
+  int c_len, m_len;
+  char *encrypted = aes256_encrypt(peer->shared_key, peer->key_size, str, strlen(str), &c_len);
+  msg[0] = byte_to_hex(encrypted, c_len);
+  str = message_encode(msg, 1);
+  while(1){
+    usleep(SEC(1));
+    printf("Ping!\n");
+    s_send(socket, str, strlen(str));
+    if(reply != NULL){
+      free(reply);
+    }
+    reply = s_receive(socket);
+    free(encrypted);
+    if(decrypted != NULL){
+      free(decrypted);
+    }
+    encrypted = hex_to_byte(message_decode(reply, NULL)[0], &c_len);
+    decrypted = aes256_decrypt(peer->shared_key, peer->key_size, encrypted, c_len, &m_len);
+    char *tmp = (char*) malloc(m_len + 1);
+    bcopy(decrypted, tmp, m_len);
+    *(tmp+m_len) = '\0';
+    free(decrypted);
+    decrypted = tmp;
+    if(strcmp(decrypted, "Pong!") != 0){
+      printf("Pong reply error!\n");
+    }
+  }
+}
+
+void pong(pPeer peer, int socket){
+  char *reply = NULL;
+  char *decrypted = NULL;
+  char *str = "Pong!";
+  char *msg[1];
+  int c_len, m_len;
+  char *encrypted = aes256_encrypt(peer->shared_key, peer->key_size, str, strlen(str), &c_len);
+  msg[0] = byte_to_hex(encrypted, c_len);
+  str = message_encode(msg, 1);
+  while(1){
+    if(reply != NULL){
+      free(reply);
+    }
+    reply = s_receive(socket);
+    free(encrypted);
+    if(decrypted != NULL){
+      free(decrypted);
+    }
+    encrypted = hex_to_byte(message_decode(reply, NULL)[0], &c_len);
+    decrypted = aes256_decrypt(peer->shared_key, peer->key_size, encrypted, c_len, &m_len);
+    char *tmp = (char*) malloc(m_len + 1);
+    bcopy(decrypted, tmp, m_len);
+    *(tmp+m_len) = '\0';
+    free(decrypted);
+    decrypted = tmp;
+    if(strcmp(decrypted, "Ping!") == 0){
+      usleep(MILLS(250));
+      printf("Pong!\n");
+      s_send(socket, str, strlen(str));
+    } else {
+      printf("Ping Error!\n");
+    }
   }
 }

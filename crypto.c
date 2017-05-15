@@ -22,7 +22,10 @@ RSA *read_rsa_key(char *pub_path, char *pri_path){
   RSA *rsa = RSA_new();
 
   FILE *rsa_pub_fp = fopen(pub_path, "r");
-  FILE *rsa_pri_fp = fopen(pri_path, "r");
+  FILE *rsa_pri_fp = NULL;
+  if(pri_path != NULL){
+    rsa_pri_fp = fopen(pri_path, "r");
+  }
   if(rsa_pub_fp == 0 && rsa_pri_fp == 0) {
     return NULL;
   }
