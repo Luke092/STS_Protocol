@@ -62,11 +62,29 @@ unsigned char* get_hash_sha256(char *message, int m_len, int *r_len){
   return res;
 }
 
+unsigned char* get_hash_sha1(char *message, int m_len, int *r_len){
+  EVP_MD_CTX *ctx =EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, EVP_sha1(), NULL);
+  EVP_DigestUpdate(ctx, message, m_len);
+  unsigned char digest[EVP_MAX_MD_SIZE];
+  int d_len;
+  EVP_DigestFinal_ex(ctx, digest, &d_len);
+  char *res = (char*) malloc(sizeof(char) * d_len);
+  bcopy(digest, res, d_len);
+  if(r_len != NULL){
+    *r_len = d_len;
+  }
+
+  // clean up
+  EVP_MD_CTX_free(ctx);
+
+  return res;
+}
+
 unsigned char* aes256_encrypt(unsigned char* key, int k_len, char *plain_text, int m_len, int *c_len){
   const int block_size = 32;
-    // blank iv initialization
-    unsigned char* iv = (char*) malloc(sizeof(char) * 16);
-    bzero(iv, 16);
+    // iv initialization
+    unsigned char* iv = get_hash_sha1(key, k_len, NULL);
 
     // key derivation
     unsigned char* aes_key = (char*) malloc(sizeof(char) * block_size);
@@ -105,9 +123,8 @@ unsigned char* aes256_encrypt(unsigned char* key, int k_len, char *plain_text, i
 
 char* aes256_decrypt(unsigned char *key, int k_len, unsigned char *chipher_text, int c_len, int *m_len){
   const int block_size = 32;
-  // blank iv initialization
-  unsigned char* iv = (char*) malloc(sizeof(char) * 16);
-  bzero(iv, 16);
+  // iv initialization
+  unsigned char* iv = get_hash_sha1(key, k_len, NULL);
 
   // key derivation
   unsigned char* aes_key = (char*) malloc(sizeof(char) * block_size);
