@@ -1,6 +1,6 @@
 #include "sts_protocol.h"
 
-pPeer sts_alice(pPeer alice, RSA *rsa_bob, int socket){
+int sts_alice(pPeer alice, RSA *rsa_bob, int socket){
   // generate x and g^x
   DH_generate_key(alice->dh);
 
@@ -12,10 +12,15 @@ pPeer sts_alice(pPeer alice, RSA *rsa_bob, int socket){
   char *encoded_str = message_encode(message, 1);
 
   // send g^x to Bob
-  s_send(socket, encoded_str, strlen(encoded_str));
+  if(s_send(socket, encoded_str, strlen(encoded_str)) != 0){
+    //TODO: send error
+  }
 
   // get g^y and E_k(S_b(SHA256(g^y,g^x))) from Bob
-  encoded_str = s_receive(socket);
+  if(s_receive(socket, &encoded_str) != 0){
+    //TODO: receive error
+  }
+
   char **dec_str = message_decode(encoded_str, NULL);
   char* bob_dh_pub_str = dec_str[0];
   BIGNUM *bob_dh_pub = BN_new();
@@ -41,11 +46,17 @@ pPeer sts_alice(pPeer alice, RSA *rsa_bob, int socket){
   int verify = RSA_verify(NID_sha1, hash_pub_keys, d_hash,
     sign_pub_keys, sign_len, rsa_bob);
   if(verify != 1){
-    printf("Alice> Bob's signature error!!!\n");
-    exit(-1);
+    write_log("Alice> Bob's signature error!!!");
+    //close connection
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    
+    write_log("Alice> Connection closed!");
+
+    return -1; // Signature verification filure
   }
 
-  printf("Alice> Bob Trusted!\n");
+  write_log("Alice> Bob Trusted!");
 
   free(pub_keys);
   free(hash_pub_keys);
@@ -74,16 +85,24 @@ pPeer sts_alice(pPeer alice, RSA *rsa_bob, int socket){
   message[0] = byte_to_hex(e_k, e_k_len);
   free(encoded_str);
   encoded_str = message_encode(message, 1);
-  s_send(socket, encoded_str, strlen(encoded_str));
 
-  printf("Alice> Ephemeral key created! Starting communication...\n");
+  if(s_send(socket, encoded_str, strlen(encoded_str)) != 0){
+    //TODO: send error
+  }
 
-  return alice;
+  write_log("Alice> Ephemeral key created!");
+  
+  return 0; // STS succeded
 }
 
-pPeer sts_bob(pPeer bob, RSA *rsa_alice, int socket){
+int sts_bob(pPeer bob, RSA *rsa_alice, int socket){
   // get g^x from Alice
-  char* enc_str = s_receive(socket);
+  char* enc_str;
+
+  if(s_receive(socket, &enc_str) != 0){
+    //TODO: receive error
+  }
+
   char** dec_str = message_decode(enc_str, NULL);
   char* alice_dh_pub_str = dec_str[0];
   BIGNUM *alice_dh_pub = BN_new();
@@ -126,11 +145,17 @@ pPeer sts_bob(pPeer bob, RSA *rsa_alice, int socket){
   char *encoded_str = message_encode(message, 2);
 
   // send g^y and E_k(S_b(SHA256(g^y,g^x))) to alice
-  s_send(socket, encoded_str, strlen(encoded_str));
+  if(s_send(socket, encoded_str, strlen(encoded_str)) != 0){
+    //TODO: send error
+  }
 
   // get E_k(S_a(SHA256(g^x,g^y))) from alice
   free(enc_str);
-  enc_str = s_receive(socket);
+
+  if(s_receive(socket, &enc_str) != 0){
+    //TODO: receive error
+  }
+
   free(dec_str);
   dec_str = message_decode(enc_str, NULL);
 
@@ -151,13 +176,19 @@ pPeer sts_bob(pPeer bob, RSA *rsa_alice, int socket){
   int verify = RSA_verify(NID_sha1, hash_pub_keys, d_hash,
     sign_pub_keys, sign_len, rsa_alice);
   if(verify != 1){
-    printf("Bob> Alice's signature error!!!\n");
-    exit(-1);
+    write_log("Bob> Alice's signature error!!!");
+    
+    //close connection
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    
+    write_log("Bob> Connection closed!");
+    
+    return -1; // Signature verification filure
   }
 
-  printf("Bob> Alice Trusted!\n");
+  write_log("Bob> Alice Trusted!");
+  write_log("Bob> Ephemeral key created!");
 
-  printf("Bob> Ephemeral key created! Starting communication...\n");
-
-  return bob;
+  return 0; // STS succeded
 }

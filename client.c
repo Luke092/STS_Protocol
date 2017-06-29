@@ -25,26 +25,33 @@ int s_send(int sockfd, char* message, int len){
   if (n < 0){
     printf("ERROR writing to socket\n");
     return -1;
-   }
+  } else if(n == 0){
+    printf("Socket shutted down\n");
+    return -2;
+  }
    return 0;
 }
 
-char* s_receive(int sockfd){
+int s_receive(int sockfd, char **message){
   int n;
   char buffer[1024];
   bzero(buffer,1024);
 
-  do{
-    n = read(sockfd, buffer, 1023);
-  }while (n == 0);
+  n = read(sockfd, buffer, 1023);
   if (n < 0){
-    printf("ERROR reading from socket\n");
-    return NULL;
+    // socket error
+    printf("ERROR reading from socket: %s\n", strerror(errno));
+    return -1;
+  } else if(n == 0){
+    // socket shutdown
+    printf("Socket shutted down\n");
+    return -2;
   }
 
   int m_len = strlen(buffer);
-  char *message = (char *) malloc(sizeof(char) * m_len + 1);
-  bzero(message, m_len + 1);
-  bcopy(buffer, message, m_len);
-  return message;
+  char *tmp = (char *) malloc(sizeof(char) * m_len + 1);
+  bzero(tmp, m_len + 1);
+  bcopy(buffer, tmp, m_len);
+  *message = tmp;
+  return 0;
 }

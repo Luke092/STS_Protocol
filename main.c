@@ -6,8 +6,10 @@
 #include "crypto.h"
 #include "encodings.h"
 #include "peer.h"
-
 #include "sts_protocol.h"
+#include "logging.h"
+
+#include <errno.h>
 
 #define MILLS(X) (X * 1000)
 #define SEC(X) (MILLS(X) * 1000)
@@ -27,6 +29,9 @@ int main(){
   DH *dh = get_params("./params/dh_param.pem", 1024);
 
   int pid = fork();
+
+  // print debug info on standard error
+  set_debug(1, stderr);
 
   if(pid == 0){
     // Client process, act as STS initiatior (ALICE)
@@ -73,8 +78,9 @@ void server(pPeer peer){
 
 void sts_server(int cli_socket){
   RSA *rsa_alice = read_rsa_key("./bob/alice.pub", NULL);
-  g_peer = sts_bob(g_peer, rsa_alice,cli_socket);
-  pong(g_peer, cli_socket);
+  int res = sts_bob(g_peer, rsa_alice,cli_socket);
+  if(res == 0)
+    pong(g_peer, cli_socket);
 }
 
 void client(pPeer peer){
@@ -93,8 +99,11 @@ void client(pPeer peer){
 
   if(sockfd > 0){
     RSA *rsa_bob = read_rsa_key("./alice/bob.pub", NULL);
-    peer = sts_alice(peer, rsa_bob, sockfd);
-    ping(peer, sockfd);
+    int res = sts_alice(peer, rsa_bob, sockfd);
+
+    if (res == 0){
+      ping(peer, sockfd);
+    }
   }
 }
 
@@ -110,11 +119,19 @@ void ping(pPeer peer, int socket){
   while(1){
     usleep(MILLS(500));
     printf("%s> Ping!\n", peer->name);
-    s_send(socket, str, strlen(str));
+
+    if(s_send(socket, str, strlen(str)) != 0){
+      //TODO: send error
+    }
+    
     if(reply != NULL){
       free(reply);
     }
-    reply = s_receive(socket);
+    
+    if(s_receive(socket, &reply) != 0){
+      //TODO: receive error
+    }
+
     free(encrypted);
     if(decrypted != NULL){
       free(decrypted);
@@ -145,7 +162,11 @@ void pong(pPeer peer, int socket){
     if(reply != NULL){
       free(reply);
     }
-    reply = s_receive(socket);
+    
+    if(s_receive(socket, &reply) != 0){
+      //TODO: receive error
+    }
+
     free(encrypted);
     if(decrypted != NULL){
       free(decrypted);
@@ -161,7 +182,11 @@ void pong(pPeer peer, int socket){
     if(strcmp(decrypted, "Ping!") == 0){
       usleep(MILLS(250));
       printf("%s> Pong!\n", peer->name);
-      s_send(socket, str, strlen(str));
+
+      if(s_send(socket, str, strlen(str)) != 0){
+        //TODO: receive error
+      }
+
     } else {
       printf("Ping Error!\n");
     }

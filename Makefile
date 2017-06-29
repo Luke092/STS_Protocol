@@ -1,5 +1,5 @@
-all: server.o client.o crypto.o encodings.o peer.o sts_protocol.o main.c
-	cc -o sts -lssl -lcrypto server.o client.o crypto.o encodings.o peer.o sts_protocol.o main.c
+all: server.o client.o crypto.o encodings.o peer.o sts_protocol.o logging.o main.c
+	cc -o sts -lssl -lcrypto server.o client.o crypto.o encodings.o peer.o sts_protocol.o logging.o main.c
 
 server.o: server.c
 	cc -c server.c
@@ -18,6 +18,9 @@ peer.o: peer.c
 
 sts_protocol.o: sts_protocol.c
 	cc -c sts_protocol.c
+
+logging.o: logging.c
+	cc -c logging.c
 
 clean:
 	rm -f *.o
