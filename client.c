@@ -23,10 +23,10 @@ int s_send(int sockfd, char* message, int len){
   int n;
   n = write(sockfd, message, len);
   if (n < 0){
-    printf("ERROR writing to socket\n");
+    write_log("ERROR writing to socket\n");
     return -1;
   } else if(n == 0){
-    printf("Socket shutted down\n");
+    write_log("Socket shutted down\n");
     return -2;
   }
    return 0;
@@ -40,11 +40,11 @@ int s_receive(int sockfd, char **message){
   n = read(sockfd, buffer, 1023);
   if (n < 0){
     // socket error
-    printf("ERROR reading from socket: %s\n", strerror(errno));
+    write_log("ERROR reading from socket: %s\n", strerror(errno));
     return -1;
   } else if(n == 0){
     // socket shutdown
-    printf("Socket shutted down\n");
+    write_log("Socket shutted down\n");
     return -2;
   }
 

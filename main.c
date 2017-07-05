@@ -79,8 +79,9 @@ void server(pPeer peer){
 void sts_server(int cli_socket){
   RSA *rsa_alice = read_rsa_key("./bob/alice.pub", NULL);
   int res = sts_bob(g_peer, rsa_alice,cli_socket);
-  if(res == 0)
+  if(res == 0){
     pong(g_peer, cli_socket);
+  }
 }
 
 void client(pPeer peer){
@@ -116,12 +117,16 @@ void ping(pPeer peer, int socket){
   char *encrypted = aes256_encrypt(peer->shared_key, peer->key_size, str, strlen(str), &c_len);
   msg[0] = byte_to_hex(encrypted, c_len);
   str = message_encode(msg, 1);
-  while(1){
+  int end = 0;
+  while(!end){
     usleep(MILLS(500));
     printf("%s> Ping!\n", peer->name);
 
     if(s_send(socket, str, strlen(str)) != 0){
-      //TODO: send error
+      shutdown(socket, SHUT_RDWR);
+      close(socket);
+      end = 1;
+      continue;
     }
     
     if(reply != NULL){
@@ -129,7 +134,10 @@ void ping(pPeer peer, int socket){
     }
     
     if(s_receive(socket, &reply) != 0){
-      //TODO: receive error
+      shutdown(socket, SHUT_RDWR);
+      close(socket);
+      end = 1;
+      continue;
     }
 
     free(encrypted);
@@ -158,13 +166,17 @@ void pong(pPeer peer, int socket){
   char *encrypted = aes256_encrypt(peer->shared_key, peer->key_size, str, strlen(str), &c_len);
   msg[0] = byte_to_hex(encrypted, c_len);
   str = message_encode(msg, 1);
-  while(1){
+  int end = 0;
+  while(!end){
     if(reply != NULL){
       free(reply);
     }
     
     if(s_receive(socket, &reply) != 0){
-      //TODO: receive error
+      shutdown(socket, SHUT_RDWR);
+      close(socket);
+      end = 1;
+      continue;
     }
 
     free(encrypted);
@@ -184,7 +196,10 @@ void pong(pPeer peer, int socket){
       printf("%s> Pong!\n", peer->name);
 
       if(s_send(socket, str, strlen(str)) != 0){
-        //TODO: receive error
+        shutdown(socket, SHUT_RDWR);
+        close(socket);
+        end = 1;
+        continue;
       }
 
     } else {

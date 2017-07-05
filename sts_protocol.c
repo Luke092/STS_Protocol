@@ -87,7 +87,9 @@ int sts_alice(pPeer alice, RSA *rsa_bob, int socket){
   encoded_str = message_encode(message, 1);
 
   if(s_send(socket, encoded_str, strlen(encoded_str)) != 0){
-    //TODO: send error
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return -2;
   }
 
   write_log("Alice> Ephemeral key created!");
@@ -100,7 +102,9 @@ int sts_bob(pPeer bob, RSA *rsa_alice, int socket){
   char* enc_str;
 
   if(s_receive(socket, &enc_str) != 0){
-    //TODO: receive error
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return -2;
   }
 
   char** dec_str = message_decode(enc_str, NULL);
@@ -146,14 +150,18 @@ int sts_bob(pPeer bob, RSA *rsa_alice, int socket){
 
   // send g^y and E_k(S_b(SHA256(g^y,g^x))) to alice
   if(s_send(socket, encoded_str, strlen(encoded_str)) != 0){
-    //TODO: send error
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return -2;
   }
 
   // get E_k(S_a(SHA256(g^x,g^y))) from alice
   free(enc_str);
 
   if(s_receive(socket, &enc_str) != 0){
-    //TODO: receive error
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return -2;
   }
 
   free(dec_str);
