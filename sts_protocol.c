@@ -13,12 +13,16 @@ int sts_alice(pPeer alice, RSA *rsa_bob, int socket){
 
   // send g^x to Bob
   if(s_send(socket, encoded_str, strlen(encoded_str)) != 0){
-    //TODO: send error
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return -2;
   }
 
   // get g^y and E_k(S_b(SHA256(g^y,g^x))) from Bob
   if(s_receive(socket, &encoded_str) != 0){
-    //TODO: receive error
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return -2;
   }
 
   char **dec_str = message_decode(encoded_str, NULL);
