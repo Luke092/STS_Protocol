@@ -97,6 +97,8 @@ int sts_alice(pPeer alice, RSA *rsa_bob, int socket){
   }
 
   write_log("Alice> Ephemeral key created!");
+  //Log SharedKey
+  write_log_bytes("Alice EphemeralKey:", alice->shared_key, alice->key_size);
   
   return 0; // STS succeded
 }
@@ -201,6 +203,8 @@ int sts_bob(pPeer bob, RSA *rsa_alice, int socket){
 
   write_log("Bob> Alice Trusted!");
   write_log("Bob> Ephemeral key created!");
+  //Log SharedKey
+  write_log_bytes("Bob EphemeralKey:", bob->shared_key, bob->key_size);
 
   return 0; // STS succeded
 }

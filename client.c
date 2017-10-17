@@ -40,7 +40,7 @@ int s_receive(int sockfd, char **message){
   n = read(sockfd, buffer, 1023);
   if (n < 0){
     // socket error
-    write_log("ERROR reading from socket: %s\n", strerror(errno));
+    printf("ERROR reading from socket: %s\n", strerror(errno));
     return -1;
   } else if(n == 0){
     // socket shutdown
